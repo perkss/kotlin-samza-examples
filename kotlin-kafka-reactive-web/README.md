@@ -56,6 +56,7 @@ docker push $(minishift openshift registry)/myproject/reactive-web
 oc apply -f deployment/reactive-web-server-configmap.yaml
 oc apply -f deployment/reactive-web-server-secrets.yaml
 oc apply -f deployment/reactive-web-server-service.yaml
+oc apply -f deployment/reactive-web-server-ingress.yaml
 oc apply -f deployment/reactive-web-server-deployment.yaml
 ```
 

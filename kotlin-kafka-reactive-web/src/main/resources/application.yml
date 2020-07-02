@@ -1,6 +1,6 @@
-application:
-  name: reactive-web-service
-  cloud:
-    kubernetes:
-      config:
-        name: reactive-web-service
+management:
+  metrics:
+    web:
+      server:
+        request:
+          metric-name: reactive-web-service.timer.metric

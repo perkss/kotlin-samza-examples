@@ -1,4 +1,4 @@
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: reactive-web-service
@@ -7,7 +7,6 @@ spec:
     - host: reactive-web-service.192.168.64.11.nip.io
       http:
         paths:
-          - path: /
-            backend:
+          - backend:
               serviceName: reactive-web-service
               servicePort: 8080

@@ -5,6 +5,10 @@ metadata:
   labels:
     app: reactive-web-service
 data:
-  perkss.kafka.example.bootstrap-servers: kafka-2
-  perkss.kafka.example.input-topic: social-media-posts
-  perkss.kafka.example.consumer-group-id: websocket-topology
+  application.yml: |-
+    perkss:
+      kafka:
+        example:
+          bootstrap-servers: "localhost:9092"
+          input-topic: "social-media-posts"
+          consumer-group-id: "websocket-topology"

@@ -25,8 +25,14 @@ spec:
           envFrom:
             - configMapRef:
                 name: reactive-web-service
+          volumeMounts:
+            - name: reactive-web-service
+              mountPath: "/config"
+              readOnly: true
           ports:
             - containerPort: 8080
+            - containerPort: 8778
+              name: jolokia
               protocol: TCP
           resources:
             requests:
@@ -37,13 +43,21 @@ spec:
               cpu: "1000m"
           livenessProbe:
             httpGet:
-              path: /
+              path: /actuator/health/liveness
               port: 8080
             initialDelaySeconds: 300
-            periodSeconds: 15
+            periodSeconds: 60
           readinessProbe:
             httpGet:
-              path: /
+              path: /actuator/health/readiness
               port: 8080
-            initialDelaySeconds: 45
-            periodSeconds: 5
+            initialDelaySeconds: 300
+            periodSeconds: 60
+      volumes:
+        - name: reactive-web-service
+          configMap:
+            name: reactive-web-service
+            items:
+              - key: application.yml
+                path: application.yml
+      serviceAccountName: config-reader
