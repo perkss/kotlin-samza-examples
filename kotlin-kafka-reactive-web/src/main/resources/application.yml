@@ -1,6 +1,0 @@
-management:
-  metrics:
-    web:
-      server:
-        request:
-          metric-name: reactive-web-service.timer.metric

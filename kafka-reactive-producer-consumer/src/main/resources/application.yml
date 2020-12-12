@@ -1,7 +1,0 @@
-perkss:
-  kafka:
-    example:
-      bootstrap-servers: "localhost:9092"
-      input-topic: "lowercase-topic"
-      output-topic: "uppercase-topic"
-      consumer-group-id: "uppercase-topology"
