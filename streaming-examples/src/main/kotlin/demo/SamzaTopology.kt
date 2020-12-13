@@ -39,28 +39,41 @@ class MyMapFunc : MapFunction<KV<String, Order>, KV<String, Order>> {
         profileTable = context.taskContext.getTable<String, Order>("order-table") as ReadWriteTable<String, Order>
     }
 
+    // Tests done. Message not in Rocks Table. We check it in get. Then we put it and get it immediately and its still there
     override fun apply(message: KV<String, Order>): KV<String, Order> {
         val kv = KV.of(message.key, message)
-        // profileTable.put(message.id, message)
+        // To make sure it goes into the state store
+
         val savedMessage = profileTable.get(message.key)
         logger.info("Found saved message for {}, {}", message.key, savedMessage)
-
+        // TODO this may not be required if side process it guarantee before next read.
+        profileTable.put(message.key, message.value) // The side processor reads the write almost immediately
+        val savedMessage2 = profileTable.get(message.key)
+        logger.info("Updated saved message for {}, {}", message.key, savedMessage2)
         return message
     }
 
 }
 
 class ProcessOrder : SideInputsProcessor {
+
+    companion object {
+        private val logger = LoggerFactory.getLogger(ProcessOrder::class.java)
+    }
+
+    // TODO when I write to changelog this reads back automatically
     override fun process(message: IncomingMessageEnvelope?,
                          store: KeyValueStore<*, *>?): MutableCollection<Entry<String, Order>> {
 
         if (message == null) {
-            println("No message")
+            logger.info("No message")
             return mutableListOf()
         }
-        println("Loaded Message ${message.message}")
+        // TODO this bootstrap didnt seem to work?
+        logger.info("Loaded Message {}, {}", message.key, message.message)
         val order = message.message as Order
-        return mutableListOf(Entry(order.id, order))
+        // TOOD format ID will make this work
+        return mutableListOf(Entry(message.key as String, order))
     }
 
 }
@@ -69,7 +82,7 @@ class SamzaTopology(private val appProperties: AppProperties) : StreamApplicatio
 
     private val KAFKA_SYSTEM_NAME = "kafka"
     private val KAFKA_CONSUMER_ZK_CONNECT: List<String> = listOf(appProperties.zookeeperServers)
-    private val KAFKA_PRODUCER_BOOTSTRAP_SERVERS: List<String> = listOf(appProperties.bootstrapServers)
+    private val KAFKA_PRODUCER_BOOTSTRAP_SERVERS: List<String> = listOf(appProperties.bootstrapServers, "localhost:9091", "localhost:9093")
     private val KAFKA_DEFAULT_STREAM_CONFIGS: Map<String, String> = ImmutableMap.of("replication.factor", "3")
 
     // Match topic name
@@ -89,14 +102,14 @@ class SamzaTopology(private val appProperties: AppProperties) : StreamApplicatio
         // This doesnt consider jere its just assing
         val profileSerde: Serde<Order> = JacksonJsonSerde<Order>()
         val inputDescriptor: KafkaInputDescriptor<KV<String, Order>> = kafkaSystemDescriptor.getInputDescriptor<KV<String, Order>>(INPUT_STREAM_ID, serde)
-        //  .shouldResetOffset()
+        // .shouldResetOffset()
         // .withOffsetDefault(SystemStreamMetadata.OffsetType.OLDEST)
 
         // Think about these serdes
         // TODO match this to changelog
         val orderProcessedCache = RocksDbTableDescriptor<String, Order>("order-table", serde)
-        //  .withSideInputs(listOf(OUTPUT_STREAM_ID))
-        //  .withSideInputsProcessor(ProcessOrder())
+                .withSideInputs(listOf(OUTPUT_STREAM_ID))
+                .withSideInputsProcessor(ProcessOrder())
 
 
         val outputDescriptor: KafkaOutputDescriptor<KV<String, Order>> = kafkaSystemDescriptor.getOutputDescriptor<KV<String, Order>>(OUTPUT_STREAM_ID, serde)
@@ -119,7 +132,10 @@ class SamzaTopology(private val appProperties: AppProperties) : StreamApplicatio
                 }
                 .map(MyMapFunc())
                 // TODO next step write the message in the table.
-                .sendTo(filteredOrders)
+                .sendTo(filteredOrders) // If this commented out and the put happens to rocks db it will not write it out still
+        // it does not write it to the topic, only the table. SO its fine to write to Table above.
+        // Loads from Changelog fine to bootstrap. -> test this
+        // Also loads from table fine. Fine on restart even if not sent to changelog.
     }
 
 }
