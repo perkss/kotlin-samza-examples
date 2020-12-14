@@ -11,9 +11,46 @@ dependencies {
     implementation platform('org.jetbrains.kotlin:kotlin-bom')
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
 
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+//    Required to use Logback and override samza logging
+    implementation group: 'org.slf4j', name: 'log4j-over-slf4j', version: '1.7.30'
+
+    implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: '2.12.0'
+    implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: '2.12.0'
+
+    implementation(group: 'org.apache.samza', name: 'samza-core_2.11') {
+        exclude group: 'org.slf4j'
+        exclude group: 'log4j'
+    }
+
+    implementation(group: 'org.apache.samza', name: 'samza-api') {
+        exclude group: 'org.slf4j'
+        exclude group: 'log4j'
+    }
+    implementation(group: 'org.apache.samza', name: 'samza-kafka_2.11') {
+        exclude group: 'org.slf4j'
+        exclude group: 'log4j'
+    }
+    implementation(group: 'org.apache.samza', name: 'samza-kv_2.11') {
+        exclude group: 'org.slf4j'
+        exclude group: 'log4j'
+    }
+    implementation(group: 'org.apache.samza', name: 'samza-kv-rocksdb_2.11') {
+        exclude group: 'org.slf4j'
+        exclude group: 'log4j'
+    }
+
     implementation group: 'org.springframework.boot', name: 'spring-boot-starter'
 
+    annotationProcessor group: 'org.springframework.boot', name: 'spring-boot-configuration-processor'
+
     testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test'
+    testImplementation(group: 'org.apache.samza', name: 'samza-test_2.11') {
+        exclude group: 'org.slf4j'
+        exclude group: 'log4j'
+    }
+    testCompile group: 'com.nhaarman', name: 'mockito-kotlin', version: '1.6.0'
+
 }
 
 bootJar {

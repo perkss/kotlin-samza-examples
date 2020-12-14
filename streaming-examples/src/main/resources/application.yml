@@ -1,0 +1,12 @@
+spring:
+  main:
+    banner-mode: off
+
+perkss:
+  samza:
+    example:
+      zookeeper-servers: "localhost:2181,localhost:22181,localhost:32181"
+      bootstrap-servers: "localhost:9092,localhost:9091,localhost:9093"
+      input-topic: "order-request"
+      output-topic: "grouped-orders"
+      consumer-group-id: "orders-topology"
