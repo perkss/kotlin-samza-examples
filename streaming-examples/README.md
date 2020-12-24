@@ -14,9 +14,18 @@ Produce
 docker exec -it kafka-1 kafka-console-producer --broker-list kafka-1:29091 --topic order-request --property "parse.key=true" --property "key.separator=:" 
 docker exec -it kafka-1 kafka-console-producer --broker-list kafka-1:29091 --topic grouped-orders --property "parse.key=true" --property "key.separator=:" 
 docker exec kafka-1 kafka-console-consumer --bootstrap-server kafka-1:29091 --topic grouped-orders --property print.key=true --property key.separator="-" --from-beginning
+docker exec kafka-1 kafka-console-consumer --bootstrap-server kafka-1:29091 --topic __samza_coordinator_order-grouping_1 --property print.key=true --property key.separator="-" --from-beginning
+docker exec kafka-1 kafka-console-consumer --bootstrap-server kafka-1:29091 --topic __samza_checkpoint_ver_1_for_order-grouping_1 --property print.key=true --property key.separator="-" --from-beginning
 ```
 
 ```shell script
 5:{"id":"5", "products": ["1"]}
 5:{"id":"5", "price":2}
+1:{"id":"1", "price":2}
+2:{"id":"2", "price":2}4:{"id":"4", "price":2}
+
+
+
+
+
 ```

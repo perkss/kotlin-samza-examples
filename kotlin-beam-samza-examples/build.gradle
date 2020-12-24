@@ -1,0 +1,19 @@
+plugins {
+    id 'org.springframework.boot'
+}
+
+dependencies {
+    implementation project(':order-model')
+    implementation group: 'org.apache.beam', name: 'beam-sdks-java-core', version: "$beamVersion"
+    implementation group: 'org.apache.beam', name: 'beam-runners-samza', version: "$beamVersion"
+
+    implementation(group: 'org.apache.beam', name: 'beam-sdks-java-io-kafka', version: "$beamVersion") {
+        exclude group: 'org.apache.kafka', module: 'kafka-clients'
+        exclude group: 'io.confluent', module: 'kafka-avro-serializer'
+    }
+
+//    Runs it local remove this for Samza
+    testCompile group: 'org.apache.beam', name: 'beam-runners-direct-java', version: '2.26.0'
+
+}
+

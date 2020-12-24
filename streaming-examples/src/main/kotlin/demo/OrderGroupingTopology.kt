@@ -8,6 +8,7 @@ import org.apache.samza.application.descriptors.StreamApplicationDescriptor
 import org.apache.samza.context.Context
 import org.apache.samza.operators.KV
 import org.apache.samza.operators.MessageStream
+import org.apache.samza.operators.OutputStream
 import org.apache.samza.operators.functions.MapFunction
 import org.apache.samza.serializers.KVSerde
 import org.apache.samza.serializers.StringSerde
@@ -48,15 +49,18 @@ class MergeOrder : MapFunction<KV<String, Order>, KV<String, Order>> {
 
     // Tests done. Message not in Rocks Table. We check it in get. Then we put it and get it immediately and its still there
     override fun apply(message: KV<String, Order>): KV<String, Order> {
-        val kv = KV.of(message.key, message)
         // To make sure it goes into the state store
         val savedMessage = profileTable.get(message.key)
 
-        val mergedMessage = message.value merge savedMessage
+        if(savedMessage != null) {
+            logger.info("Found saved message for {}, {}", message.key, savedMessage)
+            val mergedMessage = message.value merge savedMessage
+            profileTable.put(message.key, mergedMessage)
+        } else {
+            profileTable.put(message.key, message.value)
+        }
 
-        logger.info("Found saved message for {}, {}", message.key, savedMessage)
         // TODO this may not be required if side process it guarantee before next read.
-        profileTable.put(message.key, mergedMessage)
         val savedMessage2 = profileTable.get(message.key)
         logger.info("Updated saved message for {}, {}", message.key, savedMessage2)
         return message
@@ -64,9 +68,12 @@ class MergeOrder : MapFunction<KV<String, Order>, KV<String, Order>> {
 
 }
 
-class SamzaTopology(private val zookeeperServers: List<String>,
-                    private val bootstrapServers: List<String>) : StreamApplication {
+class OrderGroupingTopology(private val zookeeperServers: List<String>,
+                            private val bootstrapServers: List<String>) : StreamApplication {
 
+    companion object {
+        private val logger = LoggerFactory.getLogger(OrderGroupingTopology::class.java)
+    }
 
     private val SYSTEM_NAME = "order-topology"
     private val KAFKA_DEFAULT_STREAM_CONFIGS: Map<String, String> = ImmutableMap.of("replication.factor", "3")
@@ -92,15 +99,26 @@ class SamzaTopology(private val zookeeperServers: List<String>,
         appDescriptor.withDefaultSystem(kafkaSystemDescriptor)
 
         val table: Table<KV<String, Order>> = appDescriptor.getTable(orderProcessedCache)
+
+
         val orders: MessageStream<KV<String, Order>> = appDescriptor.getInputStream<KV<String, Order>>(inputDescriptor)
+
+        val output: OutputStream<KV<String, Order>> = appDescriptor.getOutputStream(outputDescriptor)
 
         orders
                 .map {
-                    println("Order got $it")
+                    logger.info("Order got {}", it)
                     // make fucntion process KV as signature
                     it
                 }
                 .map(MergeOrder())
+                .map {
+                    logger.info("Order got second {}", it)
+                    // make fucntion process KV as signature
+                    it
+                }
+        // Doesnt work if changelog and output the same
+               // .sendTo(output)
     }
 
 }

@@ -1,0 +1,11 @@
+plugins {
+    id 'org.springframework.boot'
+}
+
+jar {
+    enabled(true)
+}
+
+bootJar {
+    enabled false
+}
