@@ -71,27 +71,26 @@ class OrderGroupingTaskApplication(private val zookeeperServers: List<String>,
         private val logger = LoggerFactory.getLogger(OrderGroupingTopology::class.java)
     }
 
-    private val SYSTEM_NAME = "order-topology"
-    private val KAFKA_DEFAULT_STREAM_CONFIGS: Map<String, String> = ImmutableMap.of("replication.factor", "1")
+    private val systemName = "order-topology"
+    private val kafkaDefaultSystemConfigs: Map<String, String> = ImmutableMap.of("replication.factor", "1")
 
     // Match topic name
-    private val INPUT_STREAM_ID = "order-request"
-    private val OUTPUT_STREAM_ID = "grouped-orders"
+    private val orderRequestStreamId = "order-request"
+    private val groupedOrdersStreamId = "grouped-orders"
 
     override fun describe(appDescriptor: TaskApplicationDescriptor) {
-        val kafkaSystemDescriptor = KafkaSystemDescriptor(SYSTEM_NAME)
+        val kafkaSystemDescriptor = KafkaSystemDescriptor(systemName)
                 .withConsumerZkConnect(zookeeperServers)
                 .withProducerBootstrapServers(bootstrapServers)
-                .withDefaultStreamConfigs(KAFKA_DEFAULT_STREAM_CONFIGS)
+                .withDefaultStreamConfigs(kafkaDefaultSystemConfigs)
 
-        // TODO get this to work with key value as before
         val serde: KVSerde<String, Order> = KVSerde.of(StringSerde(), JacksonJsonSerde<Order>())
 
-        val inputDescriptor: KafkaInputDescriptor<KV<String, Order>> = kafkaSystemDescriptor.getInputDescriptor<KV<String, Order>>(INPUT_STREAM_ID, serde)
+        val inputDescriptor: KafkaInputDescriptor<KV<String, Order>> = kafkaSystemDescriptor.getInputDescriptor<KV<String, Order>>(orderRequestStreamId, serde)
 
         val orderProcessedCache = RocksDbTableDescriptor<String, Order>("order-table", serde)
 
-        val outputDescriptor: KafkaOutputDescriptor<KV<String, Order>> = kafkaSystemDescriptor.getOutputDescriptor<KV<String, Order>>(OUTPUT_STREAM_ID, serde)
+        val outputDescriptor: KafkaOutputDescriptor<KV<String, Order>> = kafkaSystemDescriptor.getOutputDescriptor<KV<String, Order>>(groupedOrdersStreamId, serde)
         appDescriptor.withDefaultSystem(kafkaSystemDescriptor)
 
         appDescriptor

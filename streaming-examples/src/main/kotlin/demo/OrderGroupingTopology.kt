@@ -8,13 +8,11 @@ import org.apache.samza.application.descriptors.StreamApplicationDescriptor
 import org.apache.samza.context.Context
 import org.apache.samza.operators.KV
 import org.apache.samza.operators.MessageStream
-import org.apache.samza.operators.OutputStream
 import org.apache.samza.operators.functions.MapFunction
 import org.apache.samza.serializers.KVSerde
 import org.apache.samza.serializers.StringSerde
 import org.apache.samza.storage.kv.descriptors.RocksDbTableDescriptor
 import org.apache.samza.system.kafka.descriptors.KafkaInputDescriptor
-import org.apache.samza.system.kafka.descriptors.KafkaOutputDescriptor
 import org.apache.samza.system.kafka.descriptors.KafkaSystemDescriptor
 import org.apache.samza.table.ReadWriteTable
 import org.apache.samza.table.Table
@@ -40,19 +38,16 @@ class MergeOrder : MapFunction<KV<String, Order>, KV<String, Order>> {
         private val logger = LoggerFactory.getLogger(MergeOrder::class.java)
     }
 
-    // TODO try other table like local
     private lateinit var profileTable: ReadWriteTable<String, Order>
 
     override fun init(context: Context) {
         profileTable = context.taskContext.getTable<String, Order>("order-table") as ReadWriteTable<String, Order>
     }
 
-    // Tests done. Message not in Rocks Table. We check it in get. Then we put it and get it immediately and its still there
     override fun apply(message: KV<String, Order>): KV<String, Order> {
-        // To make sure it goes into the state store
         val savedMessage = profileTable.get(message.key)
 
-        if(savedMessage != null) {
+        if (savedMessage != null) {
             logger.info("Found saved message for {}, {}", message.key, savedMessage)
             val mergedMessage = message.value merge savedMessage
             profileTable.put(message.key, mergedMessage)
@@ -60,9 +55,8 @@ class MergeOrder : MapFunction<KV<String, Order>, KV<String, Order>> {
             profileTable.put(message.key, message.value)
         }
 
-        // TODO this may not be required if side process it guarantee before next read.
-        val savedMessage2 = profileTable.get(message.key)
-        logger.info("Updated saved message for {}, {}", message.key, savedMessage2)
+        val mergedSavedMessage = profileTable.get(message.key)
+        logger.info("Updated saved message for {}, {}", message.key, mergedSavedMessage)
         return message
     }
 
@@ -75,50 +69,40 @@ class OrderGroupingTopology(private val zookeeperServers: List<String>,
         private val logger = LoggerFactory.getLogger(OrderGroupingTopology::class.java)
     }
 
-    private val SYSTEM_NAME = "order-topology"
-    private val KAFKA_DEFAULT_STREAM_CONFIGS: Map<String, String> = ImmutableMap.of("replication.factor", "3")
+    private val systemName = "order-topology"
+    private val kafkaDefaultConfig: Map<String, String> = ImmutableMap.of("replication.factor", "3")
 
     // Match topic name
-    private val INPUT_STREAM_ID = "order-request"
-    private val OUTPUT_STREAM_ID = "grouped-orders"
+    private val orderRequestStreamId = "order-request"
 
     override fun describe(appDescriptor: StreamApplicationDescriptor) {
-        val kafkaSystemDescriptor = KafkaSystemDescriptor(SYSTEM_NAME)
+        val kafkaSystemDescriptor = KafkaSystemDescriptor(systemName)
                 .withConsumerZkConnect(zookeeperServers)
                 .withProducerBootstrapServers(bootstrapServers)
-                .withDefaultStreamConfigs(KAFKA_DEFAULT_STREAM_CONFIGS)
+                .withDefaultStreamConfigs(kafkaDefaultConfig)
 
-        // TODO get this to work with key value as before
         val serde: KVSerde<String, Order> = KVSerde.of(StringSerde(), JacksonJsonSerde<Order>())
 
-        val inputDescriptor: KafkaInputDescriptor<KV<String, Order>> = kafkaSystemDescriptor.getInputDescriptor<KV<String, Order>>(INPUT_STREAM_ID, serde)
+        val inputDescriptor: KafkaInputDescriptor<KV<String, Order>> = kafkaSystemDescriptor.getInputDescriptor<KV<String, Order>>(orderRequestStreamId, serde)
 
         val orderProcessedCache = RocksDbTableDescriptor<String, Order>("order-table", serde)
 
-        val outputDescriptor: KafkaOutputDescriptor<KV<String, Order>> = kafkaSystemDescriptor.getOutputDescriptor<KV<String, Order>>(OUTPUT_STREAM_ID, serde)
         appDescriptor.withDefaultSystem(kafkaSystemDescriptor)
 
         val table: Table<KV<String, Order>> = appDescriptor.getTable(orderProcessedCache)
 
-
         val orders: MessageStream<KV<String, Order>> = appDescriptor.getInputStream<KV<String, Order>>(inputDescriptor)
-
-        val output: OutputStream<KV<String, Order>> = appDescriptor.getOutputStream(outputDescriptor)
 
         orders
                 .map {
                     logger.info("Order got {}", it)
-                    // make fucntion process KV as signature
                     it
                 }
                 .map(MergeOrder())
                 .map {
-                    logger.info("Order got second {}", it)
-                    // make fucntion process KV as signature
+                    logger.info("Order Processed and Merged {}", it)
                     it
                 }
-        // Doesnt work if changelog and output the same
-               // .sendTo(output)
     }
 
 }
