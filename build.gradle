@@ -36,6 +36,10 @@ subprojects {
             dependency group: 'org.apache.samza', name: 'samza-kv_2.11', version: "$samzaVersion"
             dependency group: 'org.apache.samza', name: 'samza-kv-rocksdb_2.11', version:  "$samzaVersion"
             dependency group: 'org.apache.samza', name: 'samza-test_2.11', version:  "$samzaVersion"
+            dependency group: 'org.apache.kafka', name: 'kafka-clients', version: '2.2.0'
+            dependency group: 'org.apache.kafka', name: 'kafka_2.11', version: '2.2.0'
+
+
         }
     }
 

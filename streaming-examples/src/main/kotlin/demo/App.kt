@@ -26,17 +26,17 @@ class App(private val appProperties: AppProperties) : CommandLineRunner {
                 "app.runner.class" to "org.apache.samza.runtime.LocalApplicationRunner",
                 "samza.offset.default" to "oldest",
                 "app.name" to "order-grouping-app",
-                "app.id" to "2", // Baffled why docs say make this different. We need this to be the same to run fail over.
+                "job.container.thread.pool.size" to "6",
+                "app.id" to "1",
                 "job.logged.store.base.dir" to "/Users/Stuart/Documents/Programming/kotlin/kotlin-samza-examples/2",
                 // Checkpointing -> will protect against missed messages. Maintains the offset position to guarantee at least once semantics.
                 "task.checkpoint.factory" to "org.apache.samza.checkpoint.kafka.KafkaCheckpointManagerFactory",
                 "stores.order-topology.default.stream.samza.key.serde" to "string",
                 "stores.order-topology.default.stream.samza.msg.serde" to "json",
                 "job.coordinator.factory" to "org.apache.samza.zk.ZkJobCoordinatorFactory",
-                "job.coordinator.zk.connect" to "127.0.0.1:2181,127.0.0.1:22181,127.0.0.1:32181",
+                "job.coordinator.zk.connect" to appProperties.zookeeperServers,
                 "job.default.system" to "order-topology",
                 "task.name.grouper.factory" to "org.apache.samza.container.grouper.task.GroupByContainerIdsFactory",
-                "task.drop.deserialization.errors" to "true",
                 "serializers.registry.string.class" to "org.apache.samza.serializers.StringSerdeFactory",
                 "serializers.registry.integer.class" to "org.apache.samza.serializers.IntegerSerdeFactory",
                 "serializers.registry.json.class" to "demo.serde.JacksonJsonSerdeFactory",
@@ -55,9 +55,7 @@ class App(private val appProperties: AppProperties) : CommandLineRunner {
 
         val runner = LocalApplicationRunner(OrderGroupingTopology(zookeeperServers, bootstrapServers), config)
         runner.run()
-        runner.waitForFinish()
-        logger.info("Passed wait till finish")
-
+        logger.info("Started Samza Application")
     }
 
 }

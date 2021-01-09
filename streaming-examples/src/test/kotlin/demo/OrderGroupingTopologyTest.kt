@@ -55,7 +55,7 @@ internal class OrderGroupingTopologyTest {
                 .run(Duration.ofSeconds(2))
 
         // TODO can assert on storage directory
-        //   StreamAssert.containsInOrder(expectedGroupedOutput, groupedOrdersStream, Duration.ofSeconds(10))
+        //    StreamAssert.containsInOrder(expectedGroupedOutput, groupedOrdersStream, Duration.ofSeconds(10))
 
     }
 

@@ -1,9 +1,10 @@
 spring:
   main:
     banner-mode: off
+    web-application-type: servlet
 
 server:
-  port: 8081
+  port: 8080
 
 perkss:
   samza:

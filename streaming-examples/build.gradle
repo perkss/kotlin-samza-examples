@@ -4,6 +4,18 @@ plugins {
 
 dependencies {
     implementation project(':order-model')
+
+    implementation group: 'org.springframework.boot', name: 'spring-boot-starter'
+    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-web'
+
+    implementation group: 'org.apache.kafka', name: 'kafka-clients'
+    implementation group: 'org.apache.kafka', name: 'kafka_2.11'
+
+    testImplementation group: 'com.salesforce.kafka.test', name: 'kafka-junit5', version: '3.2.2'
+    testImplementation group: 'org.awaitility', name: 'awaitility-kotlin', version: '4.0.3'
+
+    testImplementation('org.springframework.boot:spring-boot-starter-test')
+
 }
 
 bootJar {
