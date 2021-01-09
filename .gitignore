@@ -3,3 +3,4 @@ build
 .idea
 /build/
 /state/
+/streaming-examples/state/

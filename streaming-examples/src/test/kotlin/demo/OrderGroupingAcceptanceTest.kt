@@ -60,7 +60,7 @@ internal class OrderGroupingAcceptanceTest {
         }
 
         var groupedOrder = mutableListOf<ConsumerRecord<ByteArray, ByteArray>>()
-        await atMost Duration.ofSeconds(60) untilAsserted {
+        await atMost Duration.ofSeconds(120) untilAsserted {
             groupedOrder = utils.consumeAllRecordsFromTopic("grouped-orders")
             assertEquals(1, groupedOrder.size)
         }
@@ -81,7 +81,7 @@ internal class OrderGroupingAcceptanceTest {
         }
 
         var mergedOrder = mutableListOf<ConsumerRecord<ByteArray, ByteArray>>()
-        await atMost Duration.ofSeconds(60) untilAsserted {
+        await atMost Duration.ofSeconds(120) untilAsserted {
             mergedOrder = utils.consumeAllRecordsFromTopic("grouped-orders")
             assertEquals(2, mergedOrder.size)
         }

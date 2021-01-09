@@ -28,7 +28,6 @@ class App(private val appProperties: AppProperties) : CommandLineRunner {
                 "app.name" to "order-grouping-app",
                 "job.container.thread.pool.size" to "6",
                 "app.id" to "1",
-                "job.logged.store.base.dir" to "/Users/Stuart/Documents/Programming/kotlin/kotlin-samza-examples/2",
                 // Checkpointing -> will protect against missed messages. Maintains the offset position to guarantee at least once semantics.
                 "task.checkpoint.factory" to "org.apache.samza.checkpoint.kafka.KafkaCheckpointManagerFactory",
                 "stores.order-topology.default.stream.samza.key.serde" to "string",
