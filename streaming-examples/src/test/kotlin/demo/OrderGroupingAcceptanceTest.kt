@@ -4,6 +4,8 @@ import com.salesforce.kafka.test.junit5.SharedKafkaTestResource
 import demo.model.Order
 import junit.framework.Assert.assertEquals
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.samza.job.ApplicationStatus
+import org.apache.samza.runtime.LocalApplicationRunner
 import org.awaitility.kotlin.atMost
 import org.awaitility.kotlin.await
 import org.awaitility.kotlin.untilAsserted
@@ -11,6 +13,7 @@ import org.codehaus.jackson.map.ObjectMapper
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContextInitializer
 import org.springframework.context.ConfigurableApplicationContext
@@ -28,17 +31,18 @@ internal class OrderGroupingAcceptanceTest {
         @JvmField
         @RegisterExtension
         var sharedKafkaTestResource: SharedKafkaTestResource = SharedKafkaTestResource()
-                .withBrokers(3)
+            .withBrokers(3)
     }
 
+    @Autowired
+    private lateinit var runner: LocalApplicationRunner
 
     @Test
     fun `Testing order grouping`() {
         logger.info("Zookeeper connect is {}", sharedKafkaTestResource.zookeeperConnectString)
 
-        // TODO wait for Samza app to start
-        // Expose samza app state over HTTP
-        Thread.sleep(30000)
+        waitForSamzaApplicationToStart()
+
         val utils = sharedKafkaTestResource.kafkaTestUtils
 
         await atMost Duration.ofSeconds(60) untilAsserted {
@@ -92,11 +96,18 @@ internal class OrderGroupingAcceptanceTest {
         assertEquals(expectedMergedOrder, objectMapper.readValue(mergedOrder[1].value(), Order::class.java))
     }
 
+    private fun waitForSamzaApplicationToStart() {
+        while (runner.status() == ApplicationStatus.New) {
+            Thread.sleep(5000)
+        }
+    }
+
     class PropertyInit : ApplicationContextInitializer<ConfigurableApplicationContext> {
         override fun initialize(applicationContext: ConfigurableApplicationContext) {
-            TestPropertySourceUtils.addInlinedPropertiesToEnvironment(applicationContext,
-                    "perkss.samza.example.bootstrap-servers=${sharedKafkaTestResource.kafkaConnectString}",
-                    "perkss.samza.example.zookeeper-servers=${sharedKafkaTestResource.zookeeperConnectString}"
+            TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
+                applicationContext,
+                "perkss.samza.example.bootstrap-servers=${sharedKafkaTestResource.kafkaConnectString}",
+                "perkss.samza.example.zookeeper-servers=${sharedKafkaTestResource.zookeeperConnectString}"
             )
         }
 

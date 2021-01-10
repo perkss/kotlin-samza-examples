@@ -19,10 +19,11 @@ docker exec kafka-1 kafka-console-consumer --bootstrap-server kafka-1:29091 --to
 ```
 
 ```shell script
-5:{"id":"5", "products": ["1"]}
+5:{"id":"5", "products": ["2"]}
 5:{"id":"5", "price":2}
 1:{"id":"1", "price":2}
-2:{"id":"2", "price":2}4:{"id":"4", "price":2}
+2:{"id":"2", "price":2}
+4:{"id":"4", "price":2}
 
 
 
