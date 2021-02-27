@@ -1,7 +1,16 @@
 spring:
   main:
     banner-mode: off
-    web-application-type: servlet
+    web-application-type: reactive
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"
 
 server:
   port: 8080

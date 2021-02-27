@@ -46,11 +46,11 @@ internal class OrderGroupingTaskApplicationTest {
 
         val orderGroupingTopology = OrderGroupingTaskApplication(listOf("localhost:2181"), listOf("localhost:9091"))
         TestRunner
-                .of(orderGroupingTopology)
-                .addConfig(samzaProperties)
-                .addInputStream(orderRequest, orderRequests)
-                .addOutputStream(groupedOrdersStream, 1)
-                .run(Duration.ofSeconds(2))
+            .of(orderGroupingTopology)
+            .addConfig(samzaProperties)
+            .addInputStream(orderRequest, orderRequests)
+            .addOutputStream(groupedOrdersStream, 1)
+            .run(Duration.ofSeconds(10))
 
         // TODO can assert on storage directory
         StreamAssert.containsInOrder(expectedGroupedOutput, groupedOrdersStream, Duration.ofSeconds(10))

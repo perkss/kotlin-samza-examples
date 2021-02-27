@@ -6,7 +6,8 @@ dependencies {
     implementation project(':order-model')
 
     implementation group: 'org.springframework.boot', name: 'spring-boot-starter'
-    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-web'
+    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-webflux'
+    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-actuator'
 
     implementation group: 'org.apache.kafka', name: 'kafka-clients'
     implementation group: 'org.apache.kafka', name: 'kafka_2.11'

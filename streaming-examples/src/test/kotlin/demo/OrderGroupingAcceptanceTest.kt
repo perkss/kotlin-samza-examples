@@ -2,7 +2,6 @@ package demo
 
 import com.salesforce.kafka.test.junit5.SharedKafkaTestResource
 import demo.model.Order
-import junit.framework.Assert.assertEquals
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.samza.job.ApplicationStatus
 import org.apache.samza.runtime.LocalApplicationRunner
@@ -10,6 +9,7 @@ import org.awaitility.kotlin.atMost
 import org.awaitility.kotlin.await
 import org.awaitility.kotlin.untilAsserted
 import org.codehaus.jackson.map.ObjectMapper
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 import org.slf4j.LoggerFactory

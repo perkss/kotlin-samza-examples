@@ -6,6 +6,7 @@ import demo.serde.JacksonJsonSerde
 import org.apache.samza.application.StreamApplication
 import org.apache.samza.application.descriptors.StreamApplicationDescriptor
 import org.apache.samza.context.Context
+import org.apache.samza.context.ExternalContext
 import org.apache.samza.operators.KV
 import org.apache.samza.operators.MessageStream
 import org.apache.samza.operators.functions.MapFunction
@@ -17,16 +18,18 @@ import org.apache.samza.system.kafka.descriptors.KafkaSystemDescriptor
 import org.apache.samza.table.ReadWriteTable
 import org.apache.samza.table.Table
 import org.slf4j.LoggerFactory
+import org.springframework.boot.actuate.audit.AuditEvent
+import org.springframework.boot.actuate.audit.listener.AuditApplicationEvent
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.primaryConstructor
 
 inline infix fun <reified T : Any> T.merge(other: T): T {
     val propertiesByName = T::class.declaredMemberProperties.associateBy { it.name }
     val primaryConstructor = T::class.primaryConstructor
-            ?: throw IllegalArgumentException("merge type must have a primary constructor")
+        ?: throw IllegalArgumentException("merge type must have a primary constructor")
     val args = primaryConstructor.parameters.associateWith { parameter ->
         val property = propertiesByName[parameter.name]
-                ?: throw IllegalStateException("no declared member property found with name '${parameter.name}'")
+            ?: throw IllegalStateException("no declared member property found with name '${parameter.name}'")
         (property.get(this) ?: property.get(other))
     }
     return primaryConstructor.callBy(args)
@@ -38,9 +41,19 @@ class MergeOrder : MapFunction<KV<String, Order>, KV<String, Order>> {
         private val logger = LoggerFactory.getLogger(MergeOrder::class.java)
     }
 
+    private lateinit var externalContext: ExternalContext
     private lateinit var profileTable: ReadWriteTable<String, Order>
 
     override fun init(context: Context) {
+        externalContext = (context.externalContext as AppExternalContext)
+        (externalContext as AppExternalContext).applicationEventPublisher.publishEvent(
+            AuditApplicationEvent(
+                AuditEvent(
+                    "Samza",
+                    "MergeOrder has been initialized"
+                )
+            )
+        )
         profileTable = context.taskContext.getTable<String, Order>("order-table") as ReadWriteTable<String, Order>
     }
 
@@ -62,8 +75,10 @@ class MergeOrder : MapFunction<KV<String, Order>, KV<String, Order>> {
 
 }
 
-class OrderGroupingTopology(private val zookeeperServers: List<String>,
-                            private val bootstrapServers: List<String>) : StreamApplication {
+class OrderGroupingTopology(
+    private val zookeeperServers: List<String>,
+    private val bootstrapServers: List<String>
+) : StreamApplication {
 
     companion object {
         private val logger = LoggerFactory.getLogger(OrderGroupingTopology::class.java)
@@ -77,13 +92,14 @@ class OrderGroupingTopology(private val zookeeperServers: List<String>,
 
     override fun describe(appDescriptor: StreamApplicationDescriptor) {
         val kafkaSystemDescriptor = KafkaSystemDescriptor(systemName)
-                .withConsumerZkConnect(zookeeperServers)
-                .withProducerBootstrapServers(bootstrapServers)
-                .withDefaultStreamConfigs(kafkaDefaultConfig)
+            .withConsumerZkConnect(zookeeperServers)
+            .withProducerBootstrapServers(bootstrapServers)
+            .withDefaultStreamConfigs(kafkaDefaultConfig)
 
         val serde: KVSerde<String, Order> = KVSerde.of(StringSerde(), JacksonJsonSerde<Order>())
 
-        val inputDescriptor: KafkaInputDescriptor<KV<String, Order>> = kafkaSystemDescriptor.getInputDescriptor<KV<String, Order>>(orderRequestStreamId, serde)
+        val inputDescriptor: KafkaInputDescriptor<KV<String, Order>> =
+            kafkaSystemDescriptor.getInputDescriptor<KV<String, Order>>(orderRequestStreamId, serde)
 
         val orderProcessedCache = RocksDbTableDescriptor<String, Order>("order-table", serde)
 
@@ -94,15 +110,15 @@ class OrderGroupingTopology(private val zookeeperServers: List<String>,
         val orders: MessageStream<KV<String, Order>> = appDescriptor.getInputStream<KV<String, Order>>(inputDescriptor)
 
         orders
-                .map {
-                    logger.info("Order got {}", it)
-                    it
-                }
-                .map(MergeOrder())
-                .map {
-                    logger.info("Order Processed and Merged {}", it)
-                    it
-                }
+            .map {
+                logger.info("Order got {}", it)
+                it
+            }
+            .map(MergeOrder())
+            .map {
+                logger.info("Order Processed and Merged {}", it)
+                it
+            }
     }
 
 }
